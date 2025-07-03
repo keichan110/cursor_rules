@@ -1,0 +1,138 @@
+---
+description: 一貫性があり、エラーのないコミットを保証する Git コミット標準とガイドライン
+globs: ["**/.git/**/*"]
+---
+
+# Git コミットガイドライン
+
+## 1. クイックリファレンス
+
+### 1.1 単一行コミット（推奨）
+```bash
+# 安全な単一行コミットとプッシュ
+git add . && git commit -m "type(scope): description" && git push
+
+# 例:
+git add . && git commit -m "feat(auth): add OAuth2 integration" && git push
+```
+
+### 1.2 複数行コミット（複雑な変更の場合）
+```bash
+# 一時ファイルを使用した安全な複数行コミット
+echo "type(scope): 簡潔な説明
+
+- 詳細 1
+- 詳細 2" > .git/COMMIT_EDITMSG && git commit -F .git/COMMIT_EDITMSG && git push
+```
+
+## 2. コミットメッセージの形式
+
+### 2.1 構造
+```
+type(scope): 簡潔な説明
+```
+
+### 2.2 タイプ
+- `feat`: 新機能
+- `fix`: バグ修正
+- `docs`: ドキュメント
+- `style`: フォーマット
+- `refactor`: コードリファクタリング
+- `test`: テストの変更
+- `chore`: メンテナンス
+
+### 2.3 スコープ
+- `api`: API の変更
+- `ui`: UI の変更
+- `db`: データベース
+- `auth`: 認証
+- `rules`: Cursor ルール
+- `docs`: ドキュメント
+- `test`: テスト
+- `core`: コア機能
+
+## 3. エラー防止
+
+### 3.1 ✅ 正しいパターン
+```bash
+# 単一引用符
+git commit -m 'feat(auth): add login flow'
+
+# 二重引用符
+git commit -m "fix(api): resolve timeout issue"
+
+# 複数行の場合はファイルベース
+echo "feat(ui): add responsive layout
+
+- モバイルブレークポイントを追加
+- フレックスコンテナを実装
+- メディアクエリを更新" > .git/COMMIT_EDITMSG && git commit -F .git/COMMIT_EDITMSG
+```
+
+### 3.2 ❌ 不正なパターン
+```bash
+# 複数行のインライン（エラーを引き起こす）
+git commit -m "feat(ui): add responsive layout
+- モバイルブレークポイントを追加"
+
+# エスケープされていない特殊文字
+git commit -m "fix(api): resolve "timeout" issue"
+
+# 複雑な引用符の組み合わせ
+git commit -m 'feat(auth): add "OAuth2" integration'
+```
+
+## 4. 推奨ワークフロー
+
+### 4.1 シンプルな変更
+```bash
+# 1. 変更を追加
+git add .
+
+# 2. コミット
+git commit -m "fix(ui): correct button alignment"
+
+# 3. プッシュ
+git push
+```
+
+### 4.2 複雑な変更
+```bash
+# 1. 変更を追加
+git add .
+
+# 2. コミットメッセージを準備
+echo "feat(auth): implement OAuth2 integration
+
+- Google OAuth2 プロバイダーを追加
+- ユーザー認証フローを実装
+- セッション管理を更新
+- 認証エラーハンドリングを追加" > .git/COMMIT_EDITMSG
+
+# 3. コミット
+git commit -F .git/COMMIT_EDITMSG
+
+# 4. プッシュ
+git push
+```
+
+## 5. ベストプラクティス
+
+### 5.1 コミットメッセージの品質
+- 現在形を使用（"add" not "added"）
+- 小文字で開始
+- 末尾にピリオドを付けない
+- 50文字以内の要約
+- 必要に応じて詳細な説明
+
+### 5.2 エラー回避
+- 常に引用符を使用
+- 複雑なメッセージには一時ファイルを使用
+- コミット前に変更を確認
+- プッシュ前にコミットメッセージを確認
+
+### 5.3 チーム協力
+- 一貫性のあるタイプとスコープを使用
+- 明確で説明的なメッセージ
+- 関連する課題番号を含める
+- 破壊的変更をマーク

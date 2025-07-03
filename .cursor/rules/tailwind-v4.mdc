@@ -1,0 +1,238 @@
+---
+name: tailwind_v4
+description: Rails 8 での Tailwind CSS v4 使用標準
+version: 1.0.0
+author: Dan
+date: 2025-02-12
+globs:
+  - "app/assets/tailwind/**/*.css"
+  - "app/assets/builds/**/*.css"
+tags:
+  - tailwind
+  - css
+  - standards
+---
+
+# Tailwind CSS v4 標準
+
+<rule>
+name: tailwind_v4
+description: Rails 8 での Tailwind CSS v4 使用標準
+filters:
+  - type: file_extension
+    pattern: "\\.(css|erb)$"
+  - type: directory
+    pattern: "(app/assets/tailwind|app/assets/builds)"
+actions:
+  - type: suggest
+    message: |
+      1. ディレクトリ構造:
+         ```
+         app/
+         ├── assets/
+         │   ├── tailwind/
+         │   │   └── application.css    # メイン Tailwind 入力ファイル
+         │   └── builds/
+         │       └── tailwind.css       # 生成された出力ファイル
+         ```
+
+      2. 開発プロセス:
+         - 開発には bin/dev を使用
+         - デプロイ前に rails tailwindcss:build を実行
+         - コミット前にスタイルが適用されているか確認
+         - 生成された tailwind.css ファイルを直接変更しない
+
+      3. 設定要件:
+         - すべての Tailwind カスタマイゼーションは app/assets/tailwind/application.css に記述
+         - コンポーネントスタイルには @layer components { } を使用
+         - カスタムユーティリティには @layer utilities { } を使用
+         - 共通のユーティリティパターンを抽出するには @apply を使用
+         - application.css の上部で @import ステートメントを使用してプラグインを追加
+         - 例の構造:
+           ```css
+           @tailwind base;
+           @tailwind components;
+           @tailwind utilities;
+
+           /* カスタムプラグインとインポート */
+           @import "@tailwindcss/forms";
+           @import "@tailwindcss/typography";
+           @import "@tailwindcss/container-queries";
+
+           /* カスタムコンポーネントスタイル */
+           @layer components {
+             .btn {
+               @apply px-4 py-2 rounded font-medium;
+             }
+             
+             .btn-primary {
+               @apply bg-blue-500 text-white hover:bg-blue-600;
+             }
+             
+             .card {
+               @apply bg-white shadow-lg rounded-lg p-6;
+             }
+           }
+
+           /* カスタムユーティリティ */
+           @layer utilities {
+             .text-shadow {
+               text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+             }
+             
+             .scrollbar-hide {
+               -ms-overflow-style: none;
+               scrollbar-width: none;
+             }
+             
+             .scrollbar-hide::-webkit-scrollbar {
+               display: none;
+             }
+           }
+
+           /* ベーススタイル */
+           @layer base {
+             html {
+               font-family: 'Inter', sans-serif;
+             }
+             
+             body {
+               @apply bg-gray-50 text-gray-900;
+             }
+             
+             h1, h2, h3, h4, h5, h6 {
+               @apply font-semibold;
+             }
+           }
+           ```
+
+      4. コンポーネントの組織:
+         - ViewComponent でのスタイル抽出:
+           ```ruby
+           # app/components/ui/button_component.rb
+           class Ui::ButtonComponent < ViewComponent::Base
+             def initialize(variant: :primary, size: :medium, **options)
+               @variant = variant
+               @size = size
+               @options = options
+             end
+             
+             private
+             
+             def css_classes
+               base_classes = "btn"
+               variant_classes = variant_class
+               size_classes = size_class
+               
+               [base_classes, variant_classes, size_classes].join(" ")
+             end
+             
+             def variant_class
+               case @variant
+               when :primary
+                 "btn-primary"
+               when :secondary
+                 "btn-secondary"
+               when :danger
+                 "btn-danger"
+               else
+                 "btn-primary"
+               end
+             end
+             
+             def size_class
+               case @size
+               when :small
+                 "text-sm px-3 py-1"
+               when :medium
+                 "text-base px-4 py-2"
+               when :large
+                 "text-lg px-6 py-3"
+               else
+                 "text-base px-4 py-2"
+               end
+             end
+           end
+           ```
+
+      5. パフォーマンス最適化:
+         - 本番環境では purge 設定を使用
+         - 未使用のスタイルを削除
+         - 適切なキャッシュヘッダーを設定
+         - CSS の最小化を有効化
+
+      6. デバッグと開発:
+         - 開発環境では詳細なソースマップを使用
+         - ブラウザの開発者ツールでスタイルを確認
+         - JIT（Just-In-Time）コンパイルを活用
+         - ホットリロードを有効化
+
+      7. テスト:
+         - スタイルの適用を視覚的に確認
+         - レスポンシブデザインをテスト
+         - 異なるブラウザでの互換性を確認
+         - アクセシビリティのテスト
+
+      8. 移行ガイドライン:
+         - 既存の CSS からの段階的移行
+         - レガシースタイルの識別と置換
+         - 互換性の維持
+         - 段階的なリファクタリング
+
+examples:
+  - input: |
+      "新しいコンポーネントスタイルを追加する"
+    output: |
+      ```css
+      @layer components {
+        .card-feature {
+          @apply bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow;
+        }
+        
+        .card-feature-header {
+          @apply flex items-center justify-between mb-4;
+        }
+        
+        .card-feature-title {
+          @apply text-xl font-semibold text-gray-900;
+        }
+        
+        .card-feature-content {
+          @apply text-gray-600 leading-relaxed;
+        }
+      }
+      ```
+
+  - input: |
+      "レスポンシブデザインを実装する"
+    output: |
+      ```css
+      @layer components {
+        .hero-section {
+          @apply px-4 py-12 md:px-6 md:py-16 lg:px-8 lg:py-20;
+        }
+        
+        .hero-title {
+          @apply text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl lg:text-6xl;
+        }
+        
+        .hero-grid {
+          @apply grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3;
+        }
+      }
+      ```
+
+metadata:
+  priority: high
+  version: 1.0
+  dependencies:
+    - tailwindcss
+    - rails
+  tags:
+    - tailwind
+    - css
+    - styling
+    - standards
+</rule>
+
+---

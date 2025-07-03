@@ -1,0 +1,354 @@
+---
+description: Social Script プロジェクトの Rails 8 固有のルールとガイドライン。これらのルールは詳細な Rails 固有のプラクティスでメイン .cursorrules ファイルを補完します。
+globs: ["*.rb", "*.erb", "*.rake", "Gemfile", "Rakefile", "config/**/*.yml", "config/**/*.rb", "db/migrate/*.rb", "app/**/*"]
+---
+
+# Rails 8 開発ガイドライン
+
+## 1. Rails 8 コア機能
+
+**手動で生成されたコードよりもコマンドラインユーティリティを優先する**
+
+例：一から作成するのではなく `rails generate model` を使用する
+
+**重要: サーバー管理**
+- サーバーを起動するには常に `bin/dev` を使用（Procfile.dev を使用）
+- 重要な変更後はログを確認
+- エラーとパフォーマンスの問題について development.log を監視
+- リアルタイム監視には `tail -f log/development.log` を使用
+- 変更を完了と見なす前にログを確認
+
+1. **モダンインフラストラクチャ**
+   - アセット圧縮とキャッシュに Thruster を使用
+   - デプロイメントオーケストレーションに Kamal 2 を実装
+   - バックグラウンドジョブ処理に Solid Queue を活用
+   - キャッシュに Solid Cache を利用
+   - リアルタイム機能に Solid Cable を使用
+   - 本番ログでのヘルスチェック無音化を設定
+
+2. **データベースのベストプラクティス**
+   - PostgreSQL 全文検索機能を使用
+   - database.yml で適切なデータベース拡張を設定
+   - 大規模データセットにはデータベースパーティショニングを実装
+   - 適切なデータベースインデックス戦略を使用
+   - コネクションプーリングを設定
+   - 適切なバックアップ戦略を実装
+   - PostgreSQL 固有の機能（配列、jsonb など）を使用
+   - クエリパフォーマンスの監視と最適化
+
+3. **コントローラーパターン**
+   - より安全なパラメーター処理のために `params.expect()` を使用
+   - キャッシュストア経由でレート制限を実装
+   - 認証に新しいセッションジェネレーターを使用
+   - 本番環境でのヘルスチェックリクエストを無音化
+   - コントローラーをRESTfulで集中的に保つ
+   - 複雑なビジネスロジックにはサービスオブジェクトを使用
+
+4. **プログレッシブウェブアプリ機能**
+   - デフォルトのPWAマニフェストを活用
+   - サービスワーカーを適切に設定
+   - オフライン機能を実装
+   - プッシュ通知を設定
+
+5. **認証とセキュリティ**
+   - Rails 8 の新しい認証システムを使用
+   - 適切なセッション管理を実装
+   - CSRF 保護を確保
+   - セキュリティヘッダーを設定
+
+## 2. 開発ワークフロー
+
+### 2.1 プロジェクト設定
+```bash
+# 新しい Rails 8 プロジェクト
+rails new myapp --database=postgresql --css=tailwind
+
+# 開発サーバーの起動
+bin/dev
+
+# 依存関係の管理
+bundle install
+```
+
+### 2.2 データベース管理
+```bash
+# マイグレーションの作成
+rails generate migration CreateUsers name:string email:string
+
+# データベースの作成とマイグレーション
+bin/rails db:create db:migrate
+
+# テストデータの作成
+bin/rails db:seed
+```
+
+### 2.3 テストの実行
+```bash
+# 全テストの実行
+bin/rails test
+
+# 特定のテストファイルの実行
+bin/rails test test/models/user_test.rb
+
+# RSpec を使用する場合
+bundle exec rspec
+```
+
+## 3. アーキテクチャパターン
+
+### 3.1 モデル組織
+```ruby
+# app/models/user.rb
+class User < ApplicationRecord
+  # 関連付け
+  has_many :posts, dependent: :destroy
+  
+  # バリデーション
+  validates :email, presence: true, uniqueness: true
+  
+  # スコープ
+  scope :active, -> { where(active: true) }
+  
+  # メソッド
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+end
+```
+
+### 3.2 サービスオブジェクト
+```ruby
+# app/services/user_registration_service.rb
+class UserRegistrationService
+  def initialize(params)
+    @params = params
+  end
+  
+  def call
+    user = User.new(@params)
+    if user.save
+      send_welcome_email(user)
+      user
+    else
+      user
+    end
+  end
+  
+  private
+  
+  def send_welcome_email(user)
+    UserMailer.welcome(user).deliver_now
+  end
+end
+```
+
+### 3.3 コントローラー構造
+```ruby
+# app/controllers/users_controller.rb
+class UsersController < ApplicationController
+  before_action :set_user, only: [:show, :edit, :update, :destroy]
+  
+  def index
+    @users = User.all
+  end
+  
+  def show
+  end
+  
+  def new
+    @user = User.new
+  end
+  
+  def create
+    @user = UserRegistrationService.new(user_params).call
+    
+    if @user.persisted?
+      redirect_to @user, notice: 'ユーザーが正常に作成されました。'
+    else
+      render :new
+    end
+  end
+  
+  private
+  
+  def set_user
+    @user = User.find(params[:id])
+  end
+  
+  def user_params
+    params.expect(user: [:name, :email])
+  end
+end
+```
+
+## 4. セキュリティのベストプラクティス
+
+### 4.1 パラメーターの安全な処理
+```ruby
+# Rails 8 の新しい params.expect() を使用
+def user_params
+  params.expect(user: [:name, :email, :password])
+end
+```
+
+### 4.2 認証
+```ruby
+# 新しいセッションジェネレーターを使用
+rails generate session
+```
+
+### 4.3 認可
+```ruby
+# 適切な認可チェック
+class PostsController < ApplicationController
+  before_action :authenticate_user!
+  before_action :authorize_user!, only: [:edit, :update, :destroy]
+  
+  private
+  
+  def authorize_user!
+    redirect_to root_path unless current_user == @post.user
+  end
+end
+```
+
+## 5. パフォーマンス最適化
+
+### 5.1 N+1 クエリの回避
+```ruby
+# 悪い例
+@users = User.all
+@users.each { |user| puts user.posts.count }
+
+# 良い例
+@users = User.includes(:posts)
+@users.each { |user| puts user.posts.count }
+```
+
+### 5.2 キャッシュの活用
+```ruby
+# ビューキャッシュ
+<% cache @user do %>
+  <%= render @user %>
+<% end %>
+
+# フラグメントキャッシュ
+<% cache "user_#{@user.id}_posts" do %>
+  <%= render @user.posts %>
+<% end %>
+```
+
+### 5.3 データベースインデックス
+```ruby
+# マイグレーションでインデックスを追加
+class AddIndexToUsersEmail < ActiveRecord::Migration[8.0]
+  def change
+    add_index :users, :email, unique: true
+  end
+end
+```
+
+## 6. テスト戦略
+
+### 6.1 モデルテスト
+```ruby
+# test/models/user_test.rb
+require 'test_helper'
+
+class UserTest < ActiveSupport::TestCase
+  test "should not save user without email" do
+    user = User.new
+    assert_not user.save
+  end
+  
+  test "should save user with valid attributes" do
+    user = User.new(name: "John Doe", email: "john@example.com")
+    assert user.save
+  end
+end
+```
+
+### 6.2 統合テスト
+```ruby
+# test/integration/user_flows_test.rb
+require 'test_helper'
+
+class UserFlowsTest < ActionDispatch::IntegrationTest
+  test "user registration flow" do
+    get new_user_path
+    assert_response :success
+    
+    post users_path, params: { user: { name: "John", email: "john@example.com" } }
+    assert_redirected_to user_path(User.last)
+  end
+end
+```
+
+## 7. 監視とログ
+
+### 7.1 ログの構造化
+```ruby
+# config/application.rb
+config.log_formatter = ::Logger::Formatter.new
+config.log_level = :info
+```
+
+### 7.2 パフォーマンス監視
+```ruby
+# Gemfile
+gem 'rack-mini-profiler'
+
+# 開発環境でのみ使用
+group :development do
+  gem 'rack-mini-profiler'
+end
+```
+
+## 8. デプロイメント
+
+### 8.1 Kamal 2 の設定
+```yaml
+# config/deploy.yml
+service: myapp
+image: myapp
+
+servers:
+  - 192.168.1.100
+
+registry:
+  server: registry.digitalocean.com
+  username: myusername
+  password: mypassword
+
+env:
+  clear:
+    RAILS_ENV: production
+  secret:
+    - RAILS_MASTER_KEY
+```
+
+### 8.2 アセットの管理
+```bash
+# 本番環境でのアセット事前コンパイル
+RAILS_ENV=production bin/rails assets:precompile
+
+# Thruster を使用したアセット配信
+bin/rails server
+```
+
+## 9. 継続的な改善
+
+### 9.1 定期的なコードレビュー
+- コードの品質を保つ
+- ベストプラクティスの共有
+- セキュリティの確認
+
+### 9.2 パフォーマンス監視
+- 定期的なパフォーマンステスト
+- データベースクエリの最適化
+- レスポンス時間の監視
+
+### 9.3 セキュリティ監査
+- 定期的なセキュリティチェック
+- 依存関係の更新
+- 脆弱性スキャン

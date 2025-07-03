@@ -1,0 +1,504 @@
+---
+description: このルールファイルは Social Script プロジェクトでの ViewComponent 使用の標準を確立します。メインの `.cursorrules` ファイルを特定の ViewComponent プラクティスで補完します
+globs: 
+---
+---
+name: view_components
+description: Social Script プロジェクトでの ViewComponent 使用の標準
+version: 1.1.0
+author: Dan
+date: 2024-02-10
+globs: 
+  - app/components/**/*_component.rb
+  - app/components/**/*_component.html.erb
+tags:
+  - components
+  - view_components
+  - ui
+  - standards
+---
+
+# Social Script プロジェクトの ViewComponent 標準
+
+## 概要
+
+このルールファイルは Social Script プロジェクトでの ViewComponent 使用の標準を確立します。メインの `.cursorrules` ファイルを特定の ViewComponent プラクティスで補完します。
+
+## 主要ルール
+
+1. **ディレクトリ構造**
+   - すべてのコンポーネントは `app/components/` に配置する必要があります
+   - UI コンポーネントは `app/components/ui/` に配置する必要があります
+   - 名前空間ディレクトリはモジュール構造と一致する必要があります
+   - 各コンポーネントは名前に一致する独自のディレクトリを持つ必要があります
+     ```
+     app/components/ui/episodes/row/
+     ├── row_component.rb
+     └── row_component.html.erb
+     ```
+
+2. **コンポーネントの移動とリファクタリング**
+   - ❌ 新しい場所でコンポーネントを手動で再作成することは絶対にしない
+   - ✅ 常に CLI コマンドを使用してコンポーネントを移動する：
+     ```bash
+     # コンポーネントの移動
+     mv app/components/episodes/row_component.rb app/components/ui/episodes/row/row_component.rb
+     mv app/components/episodes/row_component.html.erb app/components/ui/episodes/row/row_component.html.erb
+     ```
+   - これにより以下が保持されます：
+     - Git 履歴
+     - ファイルタイムスタンプ
+     - 正確な内容の一致
+     - 適切な権限
+
+3. **ファイル組織**
+   - ❌ 個別のモジュール定義ファイルを作成しない（例：ui.rb、navigation.rb）
+   - ✅ コンポーネントファイル内でモジュールを定義
+   - ファイルあたり1つのコンポーネント
+   - ファイル名はクラス名と一致する必要があります
+
+4. **命名規則**
+   - コンポーネントクラスは `Component` で終わる必要があります
+   - ファイル名は `snake_case` を使用
+   - クラス名は `PascalCase` を使用
+   - 名前空間は明確で説明的である必要があります
+
+5. **コンポーネント構造**
+   ```ruby
+   # app/components/ui/episodes/row/row_component.rb
+   module Ui
+     module Episodes
+       module Row
+         class RowComponent < ViewComponent::Base
+           def initialize(episode:, **options)
+             @episode = episode
+             @options = options
+           end
+
+           private
+
+           attr_reader :episode, :options
+
+           def css_classes
+             ["episode-row", options[:class]].compact.join(" ")
+           end
+         end
+       end
+     end
+   end
+   ```
+
+6. **テンプレート組織**
+   ```erb
+   <!-- app/components/ui/episodes/row/row_component.html.erb -->
+   <div class="<%= css_classes %>">
+     <h3><%= episode.title %></h3>
+     <p><%= episode.description %></p>
+     <time><%= episode.published_at.strftime("%B %d, %Y") %></time>
+   </div>
+   ```
+
+## 実装ガイドライン
+
+### 1. 新しいコンポーネントの作成
+
+#### 1.1 Rails ジェネレーターの使用
+```bash
+# 基本的なコンポーネント
+rails generate component Ui::Button text variant:string
+
+# 複雑なコンポーネント
+rails generate component Ui::Episodes::Card episode variant:string show_actions:boolean
+```
+
+#### 1.2 手動作成（必要な場合）
+```ruby
+# app/components/ui/button/button_component.rb
+module Ui
+  module Button
+    class ButtonComponent < ViewComponent::Base
+      def initialize(text:, variant: 'primary', **options)
+        @text = text
+        @variant = variant
+        @options = options
+      end
+
+      private
+
+      attr_reader :text, :variant, :options
+
+      def css_classes
+        base_classes = 'btn'
+        variant_classes = "btn-#{variant}"
+        custom_classes = options[:class]
+        
+        [base_classes, variant_classes, custom_classes].compact.join(' ')
+      end
+    end
+  end
+end
+```
+
+### 2. プロップとオプション
+
+#### 2.1 必須プロップ
+```ruby
+def initialize(title:, content:, **options)
+  @title = title
+  @content = content
+  @options = options
+end
+```
+
+#### 2.2 オプションプロップ
+```ruby
+def initialize(title:, content: nil, variant: 'default', **options)
+  @title = title
+  @content = content
+  @variant = variant
+  @options = options
+end
+```
+
+#### 2.3 ブール値プロップ
+```ruby
+def initialize(title:, show_icon: true, disabled: false, **options)
+  @title = title
+  @show_icon = show_icon
+  @disabled = disabled
+  @options = options
+end
+```
+
+### 3. スタイリング
+
+#### 3.1 CSS クラス管理
+```ruby
+private
+
+def css_classes
+  classes = ['base-component']
+  classes << "component-#{variant}" if variant
+  classes << 'component-disabled' if disabled?
+  classes << options[:class] if options[:class]
+  classes.join(' ')
+end
+```
+
+#### 3.2 条件付きスタイル
+```ruby
+private
+
+def wrapper_classes
+  classes = ['wrapper']
+  classes << 'wrapper-expanded' if expanded?
+  classes << 'wrapper-loading' if loading?
+  classes
+end
+
+def content_classes
+  classes = ['content']
+  classes << 'content-highlight' if highlighted?
+  classes
+end
+```
+
+### 4. イベントハンドリング
+
+#### 4.1 クリックイベント
+```ruby
+def initialize(text:, action: nil, **options)
+  @text = text
+  @action = action
+  @options = options
+end
+
+private
+
+def button_attributes
+  attrs = { class: css_classes }
+  attrs[:onclick] = @action if @action
+  attrs
+end
+```
+
+#### 4.2 フォーム統合
+```ruby
+def initialize(form:, field:, **options)
+  @form = form
+  @field = field
+  @options = options
+end
+
+private
+
+def input_attributes
+  {
+    class: css_classes,
+    id: field_id,
+    name: field_name,
+    value: field_value
+  }
+end
+```
+
+### 5. データハンドリング
+
+#### 5.1 コレクションの処理
+```ruby
+def initialize(items:, **options)
+  @items = items
+  @options = options
+end
+
+private
+
+def rendered_items
+  @items.map do |item|
+    render_item(item)
+  end
+end
+
+def render_item(item)
+  # アイテムレンダリングロジック
+end
+```
+
+#### 5.2 ネストされたコンポーネント
+```ruby
+def initialize(sections:, **options)
+  @sections = sections
+  @options = options
+end
+
+private
+
+def section_component(section)
+  Ui::Section::SectionComponent.new(
+    title: section.title,
+    content: section.content
+  )
+end
+```
+
+## テスト戦略
+
+### 1. コンポーネントテスト
+
+#### 1.1 基本的なレンダリングテスト
+```ruby
+# spec/components/ui/button/button_component_spec.rb
+require 'rails_helper'
+
+RSpec.describe Ui::Button::ButtonComponent, type: :component do
+  let(:component) { described_class.new(text: 'Click me') }
+
+  it 'renders the button text' do
+    render_inline(component)
+    expect(page).to have_content('Click me')
+  end
+
+  it 'applies the correct CSS classes' do
+    render_inline(component)
+    expect(page).to have_css('.btn.btn-primary')
+  end
+end
+```
+
+#### 1.2 プロップバリデーションテスト
+```ruby
+describe 'with different variants' do
+  it 'renders primary variant' do
+    component = described_class.new(text: 'Button', variant: 'primary')
+    render_inline(component)
+    expect(page).to have_css('.btn-primary')
+  end
+
+  it 'renders secondary variant' do
+    component = described_class.new(text: 'Button', variant: 'secondary')
+    render_inline(component)
+    expect(page).to have_css('.btn-secondary')
+  end
+end
+```
+
+#### 1.3 条件付きレンダリングテスト
+```ruby
+describe 'conditional rendering' do
+  it 'shows icon when show_icon is true' do
+    component = described_class.new(text: 'Button', show_icon: true)
+    render_inline(component)
+    expect(page).to have_css('.btn-icon')
+  end
+
+  it 'hides icon when show_icon is false' do
+    component = described_class.new(text: 'Button', show_icon: false)
+    render_inline(component)
+    expect(page).not_to have_css('.btn-icon')
+  end
+end
+```
+
+### 2. 統合テスト
+
+#### 2.1 システムテスト
+```ruby
+# spec/system/components/ui/button_spec.rb
+require 'rails_helper'
+
+RSpec.describe 'Ui::Button::ButtonComponent', type: :system do
+  it 'responds to click events' do
+    visit component_preview_path('ui/button/button_component')
+    
+    find('.btn').click
+    
+    expect(page).to have_content('Button clicked')
+  end
+end
+```
+
+### 3. プレビュー（開発用）
+
+#### 3.1 コンポーネントプレビュー
+```ruby
+# spec/components/previews/ui/button/button_component_preview.rb
+class Ui::Button::ButtonComponentPreview < ViewComponent::Preview
+  def default
+    render Ui::Button::ButtonComponent.new(text: 'Default Button')
+  end
+
+  def primary
+    render Ui::Button::ButtonComponent.new(text: 'Primary Button', variant: 'primary')
+  end
+
+  def secondary
+    render Ui::Button::ButtonComponent.new(text: 'Secondary Button', variant: 'secondary')
+  end
+
+  def with_icon
+    render Ui::Button::ButtonComponent.new(text: 'With Icon', show_icon: true)
+  end
+
+  def disabled
+    render Ui::Button::ButtonComponent.new(text: 'Disabled Button', disabled: true)
+  end
+end
+```
+
+## パフォーマンスの考慮事項
+
+### 1. キャッシュ戦略
+```ruby
+def initialize(content:, cache_key: nil, **options)
+  @content = content
+  @cache_key = cache_key
+  @options = options
+end
+
+private
+
+def cache_key
+  @cache_key || "component-#{content.id}-#{content.updated_at.to_i}"
+end
+```
+
+### 2. 遅延読み込み
+```ruby
+def initialize(data_source:, **options)
+  @data_source = data_source
+  @options = options
+end
+
+private
+
+def data
+  @data ||= @data_source.call
+end
+```
+
+### 3. メモ化
+```ruby
+private
+
+def expensive_calculation
+  @expensive_calculation ||= begin
+    # 重い計算処理
+  end
+end
+```
+
+## セキュリティ考慮事項
+
+### 1. XSS 防止
+```erb
+<!-- 安全なレンダリング -->
+<div class="<%= css_classes %>">
+  <h3><%= sanitize(title) %></h3>
+  <p><%= simple_format(content) %></p>
+</div>
+```
+
+### 2. 認証とユーザー権限
+```ruby
+def initialize(user:, **options)
+  @user = user
+  @options = options
+end
+
+private
+
+def show_admin_actions?
+  @user&.admin?
+end
+```
+
+## メンテナンス性
+
+### 1. ドキュメント化
+```ruby
+# コンポーネントの目的と使用方法を説明
+# 
+# Examples:
+#   render Ui::Button::ButtonComponent.new(text: 'Click me')
+#   render Ui::Button::ButtonComponent.new(text: 'Submit', variant: 'primary')
+#
+class ButtonComponent < ViewComponent::Base
+  # 実装内容
+end
+```
+
+### 2. リファクタリング
+```ruby
+# 共通の機能を基底クラスに抽出
+class BaseComponent < ViewComponent::Base
+  private
+
+  def css_classes
+    classes = [base_css_class]
+    classes << variant_css_class if variant
+    classes << options[:class] if options[:class]
+    classes.join(' ')
+  end
+
+  def base_css_class
+    self.class.name.demodulize.underscore.gsub('_component', '')
+  end
+end
+```
+
+## 継続的改善
+
+### 1. 定期的なレビュー
+- コンポーネントの使用状況を監視
+- 重複したコンポーネントを特定
+- 未使用コンポーネントを削除
+
+### 2. パフォーマンス監視
+- レンダリング時間を測定
+- メモリ使用量を監視
+- キャッシュ効率を評価
+
+### 3. チームコラボレーション
+- コンポーネントガイドラインの共有
+- プレビューシステムの活用
+- 定期的なコンポーネント監査

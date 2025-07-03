@@ -1,0 +1,66 @@
+---
+description: 将来の cursor ルールのプロンプトと管理を支援するメタルール
+globs: ["**/*"]
+---
+# メタルール: 将来のルール管理
+# このルールは新しいルールの機会を特定し、その作成を管理するのに役立ちます
+
+<rule>
+name: meta_rule_management
+description: 将来の cursor ルールのプロンプトと管理を支援するメタルール
+filters:
+  - type: file_extension
+    pattern: "\\.mdc$"
+actions:
+  - type: suggest
+    message: |
+      ルール管理ガイドライン:
+
+      1. ルール構造:
+         - 各ルールは明確な名前と説明を持つ必要があります
+         - ルールが適用される条件のフィルターを含める
+         - 具体的なアクションまたは提案を提供
+         - 適切な場合は例を含める
+
+      2. ルールカテゴリ:
+         a) コアルール:
+            - memory-management: メモリとタスク追跡システム
+            - documentation-reference: ドキュメント標準
+            - problem-solving: 問題分析アプローチ
+            - rails: Rails 固有のガイドライン
+            - plan-updates: 外科的計画更新ガイドライン
+
+         b) サポートルール:
+            - auto-format: コードフォーマット標準
+            - rule-acknowledgment: ルール追跡の実行
+            - rule-extraction: ルール管理
+            - cursor_rules_location: ファイル組織
+
+      3. ルールの更新:
+         - ルールバージョンでの変更を文書化
+         - 必要に応じて関連ルールを更新
+         - 後方互換性を維持
+         - 例を最新に保つ
+
+      4. ルールの適用:
+         - タスク前に関連ルールを確認
+         - ルール階層に従う
+         - ルール競合を文書化
+         - 必要に応じて更新
+
+      覚えておくこと:
+      - ルールは焦点を絞って明確に保つ
+      - 例を定期的に更新する
+      - ルール関係を維持する
+      - 変更を適切に文書化する
+
+metadata:
+  priority: high
+  version: 1.1
+  tags:
+    - meta
+    - rules
+    - management
+</rule>
+
+---

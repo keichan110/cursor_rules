@@ -1,0 +1,65 @@
+---
+description: Rails アプリケーションでの API 問題のデバッグに関するルール
+globs: ["spec/**/*_spec.rb", "test/**/*_test.rb", "app/services/**/*.rb", "lib/**/*.rb"]
+---
+
+# API デバッグガイドライン
+
+## 1. 初期設定
+
+### 1.1 必要な Gem
+```ruby
+group :test do
+  gem "rspec-rails"      # テスティングフレームワーク
+  gem "vcr"              # HTTP インタラクションの記録と再生
+  gem "webmock"          # HTTP リクエストのスタブ化
+  gem "factory_bot_rails" # テストデータの生成
+end
+```
+
+### 1.2 VCR 設定
+```ruby
+# spec/support/vcr.rb
+VCR.configure do |config|
+  config.cassette_library_dir = "spec/vcr_cassettes"
+  config.hook_into :webmock
+  config.configure_rspec_metadata!
+  config.filter_sensitive_data('<API_KEY>') { ENV['API_KEY'] }
+end
+```
+
+## 2. デバッグプロセス
+
+### 2.1 問題の分離
+1. 問題を再現する最小限のテストケースを作成
+2. API 呼び出しを UI/ビジネスロジックから分離
+3. API インタラクションにはサービスオブジェクトを使用
+4. リクエスト/レスポンスサイクルをログに記録
+
+### 2.2 テスト構造
+```ruby
+RSpec.describe ApiService, :vcr do
+  describe "#fetch_data" do
+    context "API が利用可能な場合" do
+      it "期待されるデータを返す" do
+        service = ApiService.new
+        response = service.fetch_data
+        expect(response).to include(expected_data)
+      end
+    end
+
+    context "API が利用できない場合" do
+      before do
+        stub_request(:get, /api\.example\.com/).
+          to_return(status: 503)
+      end
+
+      it "エラーを適切に処理する" do
+        service = ApiService.new
+        expect { service.fetch_data }.
+          to raise_error(ApiService::ServiceUnavailable)
+      end
+    end
+  end
+end
+```

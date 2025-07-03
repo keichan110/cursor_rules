@@ -1,0 +1,100 @@
+---
+description: どのルールに従っているか、どのルールが関連しないかの明示的な承認を保証します
+globs: ["**/*"]
+---
+# ルール承認と関連性追跡
+# ルールの適用と関連性の透明性を保証します
+
+<rule>
+name: rule_acknowledgment
+description: レスポンスにおけるルールの関連性と適用の明示的な承認を強制します
+filters:
+  - type: event
+    pattern: "response_start"
+  - type: content
+    pattern: "(?i)(implement|change|update|modify|create|setup|configure)"
+actions:
+  - type: suggest
+    message: |
+      レスポンスの開始時にルールを承認してください：
+
+      1. ルールレビュー構造:
+         ```markdown
+         ### ルール承認
+         
+         **適用される関連ルール:**
+         - [ルール名]: どのように適用されているか
+         - [別のルール]: 具体的な適用詳細
+         
+         **検討したが関連しないルール:**
+         - [ルール名]: 適用できない理由
+         - [別のルール]: 関連しない理由
+         
+         **以下に従った実装:**
+         [実装詳細...]
+         ```
+
+      2. 必要な構成要素:
+         - [ ] 検討したすべてのルールをリスト
+         - [ ] 従っているルールを明示的に述べる
+         - [ ] 特定のルールが関連しない理由を説明
+         - [ ] 適用されるルールの特定のセクションを参照
+         - [ ] ルールの競合や優先順位の決定を記録
+
+      3. ルール適用ノート:
+         - ルールの適応を文書化
+         - バージョン固有のルール考慮事項を記録
+         - ルールの重複処理を強調
+         - ルールが競合する場合の優先順位の決定を説明
+
+      4. ルールドキュメント更新:
+         - 必要なルールの明確化を記録
+         - 適用に基づくルールの改善を提案
+         - 発見されたルールの競合を文書化
+         - ルールの効果性を追跡
+
+examples:
+  - input: |
+      "コンポーネント構造を更新する"
+    output: |
+      ### ルール承認
+      
+      **適用される関連ルール:**
+      - documentation-reference: ドキュメントリンク要件に従う
+      - component-structure: コンポーネント組織標準を適用
+      
+      **検討したが関連しないルール:**
+      - database-management: データベース変更が含まれないため
+      - api-debugging: API 関連の変更ではないため
+      
+      **以下に従った実装:**
+      [実装詳細...]
+
+  - input: |
+      "新しい機能を実装する"
+    output: |
+      ### ルール承認
+      
+      **適用される関連ルール:**
+      - test_driven_development: TDD アプローチに従う
+      - rails: Rails 8 の規則に従う
+      - git_commit: 適切なコミットメッセージ形式を使用
+      
+      **検討したが関連しないルール:**
+      - log_checking: ログ分析が必要ないため
+      - memory-management: メモリ集約的な操作ではないため
+      
+      **以下に従った実装:**
+      [実装詳細...]
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - rules
+    - acknowledgment
+    - transparency
+    - documentation
+</rule>
+
+---

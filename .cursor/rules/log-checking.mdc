@@ -1,0 +1,89 @@
+---
+description: 安全で効率的なログ確認のためのガイドライン
+globs: 
+---
+# ログ確認ルール
+# 安全で効率的なログ確認のためのガイドライン
+
+<rule>
+name: log_checking
+description: ログを安全かつ効率的に確認するためのルール
+filters:
+  - type: command
+    pattern: "tail|grep|log"
+actions:
+  - type: suggest
+    message: |
+      ログ確認ガイドライン:
+
+      1. 時間制限チェック:
+         - 無期限の tail -f コマンドは絶対に使用しない
+         - 常に 5 秒制限で timeout コマンドを使用
+         - 特定の行数で head/tail を使用
+         - grep 出力を制限
+
+      2. コマンド構造:
+         ```bash
+         # ✅ 良い例 - タイムアウトと行数制限付き
+         timeout 5s tail -n 50 log/development.log | grep -i "pattern"
+
+         # ✅ 良い例 - 特定の時間窓付き
+         grep -i "pattern" log/development.log | tail -n 20
+
+         # ❌ 悪い例 - 無期限待機
+         tail -f log/development.log | grep "pattern"
+         ```
+
+      3. パターンベース検索:
+         - 特定の grep パターンを使用
+         - 検索にタイムスタンプを含める
+         - ログレベル（ERROR、WARN など）でフィルタリング
+         - 制限付きのコンテキストフラグ（-A、-B、-C）を使用
+
+      4. エラー分析:
+         - まず最新のエラーを確認
+         - 特定の時間窓を使用
+         - 関連するエラータイプに集中
+         - エラー周辺のコンテキストを取得
+
+      5. 標準コマンド:
+         ```bash
+         # 最新のエラー
+         grep -i "error" log/development.log | tail -n 20
+
+         # コンテキスト付きパターン
+         grep -i -C 3 "pattern" log/development.log | tail -n 50
+
+         # 時間ベースのチェック
+         find log -mmin -30 -type f -exec grep -i "pattern" {} \;
+         ```
+
+      覚えておくこと:
+      - 無期限 tail コマンドは絶対に使用しない
+      - 常にタイムアウトを設定
+      - 特定の検索パターンを使用
+      - 出力行数を制限
+      - まず最新のエントリに集中
+
+examples:
+  - input: |
+      "ログファイルでエラーを確認したい"
+    output: |
+      ```bash
+      # 最新の 20 エラーを確認
+      grep -i "error" log/development.log | tail -n 20
+      
+      # 特定のパターンをコンテキスト付きで検索
+      timeout 5s grep -i -C 3 "specific_error" log/development.log
+      ```
+
+  - input: |
+      "リアルタイムでログを監視したい"
+    output: |
+      ```bash
+      # 5 秒間のリアルタイム監視
+      timeout 5s tail -f log/development.log
+      
+      # 特定のパターンを 5 秒間監視
+      timeout 5s tail -f log/development.log | grep -i "pattern"
+      ```

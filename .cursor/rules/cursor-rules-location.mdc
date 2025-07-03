@@ -1,0 +1,61 @@
+---
+description: 他のすべての .cursorrules ファイルの場所と命名規則を強制します。これは最も重要なルールです。
+globs: 
+---
+# Cursor Rules Location
+# 他のすべての .cursorrules ファイルの場所と命名規則を強制します。これは最も重要なルールです。
+<rule>
+name: cursor_rules_location
+description: Cursor ルールファイルを正しいディレクトリに配置する標準
+filters:
+  - type: file_extension
+    pattern: "\\.mdc$"
+  - type: content
+    pattern: "(?s)<rule>.*?</rule>" # 複数行にまたがる <rule> タグ間の内容にマッチ
+  - type: event
+    pattern: "file_create"
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^(?!\\.\\/\\.cursor\\/rules\\/.*\\.mdc$)" # 否定先読み: .cursor/rules/ 内にない場合は拒否
+        message: "Cursor ルールファイル (.mdc) は .cursor/rules ディレクトリに配置する必要があります"
+  - type: suggest
+    message: |
+      Cursor ルールを作成する際は:
+
+      1. ルールファイルは常に PROJECT_ROOT/.cursor/rules/ に配置してください:
+         ```
+         .cursor/rules/
+         ├── your-rule-name.mdc
+         ├── another-rule.mdc
+         └── ...
+         ```
+
+      2. 命名規則に従ってください:
+         - ファイル名にはケバブケースを使用 (例: my-rule-name.mdc)
+         - 常に .mdc 拡張子を使用
+         - ルールの目的を説明する名前を付ける
+
+      3. 必要に応じて、.cursor/rules/ 内にサブディレクトリを作成して、大きなプロジェクトの場合はルールを整理してください:
+          ```
+          .cursor/rules/
+          ├── coding-style/
+          │   ├── python-style.mdc
+          │   └── javascript-style.mdc
+          ├── git/
+          │   └── commit-messages.mdc
+          └── ...
+          ```
+
+      4. 以下の場所にルールファイルを配置してはいけません:
+         - プロジェクトルート
+         - 任意のサブディレクトリ (.cursor/rules/ 以外)
+         - .cursor 以外の設定ディレクトリ
+
+      5. ルールファイルには以下を含めてください:
+         - 明確な説明
+         - 適切な globs パターン
+         - 具体的なアクション
+         - 可能な場合は例
+
+      6. ルールの重複を避けるため、新しいルールを作成する前に既存のルールを確認してください。

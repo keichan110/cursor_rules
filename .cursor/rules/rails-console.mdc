@@ -1,0 +1,246 @@
+---
+description: Rails コンソールインタラクションのルール
+globs: 
+---
+# Rails コンソールインタラクションのルール
+
+## 1. コンソールテストアプローチ
+
+Rails で機能をテストする際は、以下のアプローチを優先順位順に従ってください：
+
+1. **単一コマンドには Rails Runner を使用**
+   ```bash
+   bin/rails runner 'puts User.count'
+   ```
+
+2. **複雑な操作にはテストファイルを使用**
+   ```ruby
+   # spec/lib/podcast_index_spec.rb
+   require 'rails_helper'
+   
+   RSpec.describe PodcastIndex do
+     # ここにテストコード
+   end
+   ```
+
+3. **実行可能スクリプトを作成**
+   ```bash
+   # bin/test_podcast_search
+   #!/usr/bin/env ruby
+   require File.expand_path('../../config/environment', __FILE__)
+   
+   # ここにテストコード
+   ```
+
+## 2. Rails Runner ガイドライン
+
+1. **基本コマンド構造**
+   ```bash
+   bin/rails runner 'command_here'
+   ```
+
+2. **エラーハンドリング**
+   ```bash
+   bin/rails runner 'begin; command_here; rescue => e; puts "Error: #{e.message}"; end'
+   ```
+
+3. **複数行**
+   ```bash
+   bin/rails runner "
+     begin
+       # 複数行のコード
+     rescue => e
+       puts \"Error: #{e.message}\"
+     end
+   "
+   ```
+
+## 3. テストスクリプト
+
+1. **場所**: `bin/` ディレクトリに保存
+2. **命名**: 説明的な名前を使用（例：`test_podcast_search`）
+3. **権限**: `chmod +x` で実行可能にする
+4. **エラーハンドリング**: 常にエラーハンドリングを含める
+5. **ログ**: 明確な出力メッセージを含める
+
+例：
+```bash
+#!/usr/bin/env ruby
+require File.expand_path('../../config/environment', __FILE__)
+
+def test_podcast_search
+  client = PodcastIndex::Client.new
+  results = client.search.byterm("Test Query")
+  puts "Results found: #{results.count}"
+rescue => e
+  puts "Error: #{e.message}"
+end
+
+test_podcast_search
+```
+
+## 4. デバッグ戦略
+
+1. **ログの確認**
+   ```bash
+   tail -f log/development.log
+   ```
+
+2. **エラーの分離**
+   ```bash
+   bin/rails runner 'begin; YourClass.new.method; rescue => e; puts e.backtrace; end'
+   ```
+
+3. **段階的テスト**
+   ```bash
+   # ステップ1: 基本的な接続テスト
+   bin/rails runner 'puts "Rails loaded successfully"'
+   
+   # ステップ2: クラスの存在確認
+   bin/rails runner 'puts YourClass.new.inspect'
+   
+   # ステップ3: メソッドの実行
+   bin/rails runner 'puts YourClass.new.your_method'
+   ```
+
+## 5. 一般的な使用パターン
+
+### 5.1 データベースクエリのテスト
+```bash
+bin/rails runner 'puts User.where(active: true).count'
+```
+
+### 5.2 API クライアントのテスト
+```bash
+bin/rails runner '
+  begin
+    client = ApiClient.new
+    result = client.fetch_data
+    puts "Success: #{result.inspect}"
+  rescue => e
+    puts "Error: #{e.message}"
+    puts e.backtrace
+  end
+'
+```
+
+### 5.3 環境変数の確認
+```bash
+bin/rails runner 'puts "ENV value: #{ENV["YOUR_VAR"]}"'
+```
+
+## 6. 避けるべきパターン
+
+### 6.1 ❌ 長時間実行されるコンソールセッション
+```bash
+# 避ける
+bin/rails console
+# 長時間のインタラクティブセッション
+```
+
+### 6.2 ❌ 本番データの直接操作
+```bash
+# 避ける
+bin/rails runner 'User.delete_all' # 本番環境で
+```
+
+### 6.3 ❌ 複雑なロジックのインライン実行
+```bash
+# 避ける - 複雑すぎる
+bin/rails runner 'User.all.each {|u| u.posts.each {|p| p.update(status: "published") if p.draft?}}'
+```
+
+## 7. 推奨パターン
+
+### 7.1 ✅ 簡潔で明確なコマンド
+```bash
+bin/rails runner 'puts Post.published.count'
+```
+
+### 7.2 ✅ 適切なエラーハンドリング
+```bash
+bin/rails runner '
+  begin
+    result = ComplexOperation.perform
+    puts "Success: #{result}"
+  rescue => e
+    puts "Error: #{e.class}: #{e.message}"
+  end
+'
+```
+
+### 7.3 ✅ 専用スクリプトファイル
+```bash
+# bin/check_data_integrity
+#!/usr/bin/env ruby
+require File.expand_path('../../config/environment', __FILE__)
+
+puts "データ整合性チェックを開始..."
+errors = []
+
+begin
+  # チェック1: 孤立したレコード
+  orphaned_posts = Post.where.not(user_id: User.pluck(:id))
+  if orphaned_posts.any?
+    errors << "孤立した投稿が #{orphaned_posts.count} 件見つかりました"
+  end
+  
+  # チェック2: 重複データ
+  duplicate_emails = User.group(:email).having('count(*) > 1').count
+  if duplicate_emails.any?
+    errors << "重複したメールアドレスが #{duplicate_emails.count} 件見つかりました"
+  end
+  
+  if errors.empty?
+    puts "✅ データ整合性チェック完了：問題なし"
+  else
+    puts "❌ データ整合性チェック完了：問題あり"
+    errors.each { |error| puts "  - #{error}" }
+  end
+rescue => e
+  puts "❌ チェック中にエラーが発生しました: #{e.message}"
+end
+```
+
+## 8. パフォーマンスの考慮事項
+
+### 8.1 大量データの処理
+```bash
+# バッチ処理で実行
+bin/rails runner '
+  User.find_each(batch_size: 1000) do |user|
+    user.update_some_attribute
+  end
+'
+```
+
+### 8.2 メモリ使用量の監視
+```bash
+# メモリ使用量を確認
+bin/rails runner '
+  puts "Memory usage: #{`ps -o pid,rss,command -p #{Process.pid}`.split("\n").last}"
+'
+```
+
+## 9. セキュリティ考慮事項
+
+### 9.1 機密情報の保護
+```bash
+# 機密情報をログに出力しない
+bin/rails runner '
+  user = User.find(params[:id])
+  puts "User found: #{user.email}" # パスワードは出力しない
+'
+```
+
+### 9.2 権限の確認
+```bash
+# 適切な権限チェック
+bin/rails runner '
+  if current_user&.admin?
+    perform_admin_action
+  else
+    puts "権限がありません"
+  end
+'
+```

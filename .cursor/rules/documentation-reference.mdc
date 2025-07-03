@@ -1,0 +1,56 @@
+---
+description: コードの変更が関連するドキュメントへの参照を伴うことを保証します
+globs: ["**/*.{rb,js,erb,html,css,scss}"]
+---
+# ドキュメント参照ルール
+# すべてのコード変更が公式ドキュメントへの参照と適切に文書化されることを保証します
+
+<rule>
+name: documentation_reference
+description: コードの変更時にドキュメント参照の包含を強制します
+filters:
+  - type: event
+    pattern: "code_change"
+  - type: content
+    pattern: "(?i)(rails|hotwire|stimulus|turbo|propshaft|tailwind)"
+actions:
+  - type: suggest
+    message: |
+      関連するドキュメントへの参照を含めてください:
+
+      1. ドキュメントソース:
+         - Rails ガイド: https://guides.rubyonrails.org/
+         - Rails API: https://api.rubyonrails.org/
+         - Hotwire ハンドブック: https://hotwired.dev/
+         - Stimulus リファレンス: https://stimulus.hotwired.dev/
+         - Turbo ハンドブック: https://turbo.hotwired.dev/
+         - Propshaft ガイド: https://github.com/rails/propshaft#readme
+         - Tailwind CSS: https://tailwindcss.com/docs
+         - Cursor に含まれるその他のリソース
+
+      2. 必要なドキュメント参照:
+         - [ ] 関連するガイド/ドキュメントへのリンク
+         - [ ] 該当する場合は具体的なセクション参照
+         - [ ] 関連する場合はドキュメントからのコード例
+         - [ ] 文書化されたパターンからの逸脱
+
+      3. 実装ノート:
+         - 標準パターンから逸脱する理由を文書化
+         - バージョン固有の考慮事項を含める
+         - 非推奨の警告や今後の変更を記録
+         - 互換性に関する制限を記載
+
+      4. ローカルドキュメント:
+         - 関連するローカルドキュメントを更新
+         - 既存のドキュメントとの相互参照
+         - チーム参照用の例を追加
+         - 実装パターンの一貫性を保つ
+
+examples:
+  - input: |
+      "Stimulus コントローラーの設定を更新"
+    output: |
+      Stimulus ハンドブック (https://stimulus.hotwired.dev/handbook/installing) に従って:
+      - コントローラー登録: https://stimulus.hotwired.dev/reference/controllers
+      - アプリケーション設定: https://stimulus.hotwired.dev/reference/application
+      - 特定の実装パターンとその根拠を文書化

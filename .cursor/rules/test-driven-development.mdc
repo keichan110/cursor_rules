@@ -1,0 +1,404 @@
+---
+description: Social Script プロジェクトのテスト駆動開発（TDD）に関する包括的なガイド
+globs: ["spec/**/*_spec.rb", "test/**/*_test.rb", "**/*_test.rb", "**/*_spec.rb"]
+---
+
+# テスト駆動開発（TDD）標準
+
+<rule>
+name: test_driven_development
+description: Social Script プロジェクトのテスト駆動開発のルールと標準
+filters:
+  - type: file_extension
+    pattern: "\\.(rb)$"
+  - type: directory
+    pattern: "(spec|test)"
+actions:
+  - type: suggest
+    message: |
+      テスト駆動開発（TDD）ガイドライン:
+
+      ## 1. TDD サイクル
+
+      ### 1.1 レッド・グリーン・リファクタサイクル
+      ```
+      🔴 レッド: 失敗するテストを書く
+      🟢 グリーン: テストを通すための最小限のコードを書く
+      🔵 リファクタ: コードを改善する
+      ```
+
+      ### 1.2 詳細なステップ
+      1. **レッド**: 新しい機能の失敗するテストを書く
+      2. **グリーン**: テストを通すための最小限のコードを書く
+      3. **リファクタ**: コードを改善し、重複を除去する
+      4. **繰り返し**: 次の機能について繰り返す
+
+      ## 2. テスト構造
+
+      ### 2.1 RSpec の基本構造
+      ```ruby
+      # spec/models/user_spec.rb
+      require 'rails_helper'
+
+      RSpec.describe User, type: :model do
+        describe '#full_name' do
+          context 'when first_name and last_name are present' do
+            it 'returns the full name' do
+              user = User.new(first_name: 'John', last_name: 'Doe')
+              expect(user.full_name).to eq('John Doe')
+            end
+          end
+
+          context 'when only first_name is present' do
+            it 'returns the first name' do
+              user = User.new(first_name: 'John')
+              expect(user.full_name).to eq('John')
+            end
+          end
+        end
+      end
+      ```
+
+      ### 2.2 テストの組織
+      ```ruby
+      # 良いテスト構造
+      RSpec.describe SomeClass do
+        # セットアップ
+        let(:user) { create(:user) }
+        
+        # テストグループ
+        describe '#method_name' do
+          context 'when condition is true' do
+            it 'returns expected result' do
+              # テスト内容
+            end
+          end
+        end
+      end
+      ```
+
+      ## 3. テストタイプ
+
+      ### 3.1 単体テスト（Unit Tests）
+      ```ruby
+      # spec/models/user_spec.rb
+      RSpec.describe User, type: :model do
+        describe 'validations' do
+          it { should validate_presence_of(:email) }
+          it { should validate_uniqueness_of(:email) }
+        end
+
+        describe 'associations' do
+          it { should have_many(:posts) }
+        end
+
+        describe '#active?' do
+          it 'returns true when user is active' do
+            user = build(:user, active: true)
+            expect(user.active?).to be true
+          end
+        end
+      end
+      ```
+
+      ### 3.2 統合テスト（Integration Tests）
+      ```ruby
+      # spec/requests/users_spec.rb
+      RSpec.describe 'Users', type: :request do
+        describe 'GET /users' do
+          it 'returns a successful response' do
+            get users_path
+            expect(response).to have_http_status(:ok)
+          end
+        end
+
+        describe 'POST /users' do
+          context 'with valid parameters' do
+            it 'creates a new user' do
+              expect {
+                post users_path, params: { user: { name: 'John', email: 'john@example.com' } }
+              }.to change(User, :count).by(1)
+            end
+          end
+        end
+      end
+      ```
+
+      ### 3.3 システムテスト（System Tests）
+      ```ruby
+      # spec/system/user_registration_spec.rb
+      RSpec.describe 'User Registration', type: :system do
+        it 'allows a user to register' do
+          visit new_user_registration_path
+          
+          fill_in 'Name', with: 'John Doe'
+          fill_in 'Email', with: 'john@example.com'
+          fill_in 'Password', with: 'password123'
+          
+          click_button 'Register'
+          
+          expect(page).to have_content('Welcome, John!')
+        end
+      end
+      ```
+
+      ## 4. ファクトリーの使用
+
+      ### 4.1 FactoryBot 設定
+      ```ruby
+      # spec/factories/users.rb
+      FactoryBot.define do
+        factory :user do
+          name { 'John Doe' }
+          email { 'john@example.com' }
+          password { 'password123' }
+          
+          trait :admin do
+            role { 'admin' }
+          end
+          
+          trait :inactive do
+            active { false }
+          end
+        end
+      end
+      ```
+
+      ### 4.2 ファクトリーの使用
+      ```ruby
+      # テストでのファクトリー使用
+      describe '#some_method' do
+        let(:user) { create(:user) }
+        let(:admin_user) { create(:user, :admin) }
+        
+        it 'works with regular user' do
+          expect(user.some_method).to eq(expected_value)
+        end
+      end
+      ```
+
+      ## 5. モックとスタブ
+
+      ### 5.1 スタブの使用
+      ```ruby
+      # 外部サービスのスタブ
+      describe '#fetch_data' do
+        it 'returns parsed data' do
+          allow(ExternalService).to receive(:fetch).and_return('raw_data')
+          allow(DataParser).to receive(:parse).with('raw_data').and_return('parsed_data')
+          
+          result = subject.fetch_data
+          expect(result).to eq('parsed_data')
+        end
+      end
+      ```
+
+      ### 5.2 モックの使用
+      ```ruby
+      # メソッド呼び出しの確認
+      describe '#process_data' do
+        it 'calls the external service' do
+          expect(ExternalService).to receive(:process).with('data')
+          subject.process_data('data')
+        end
+      end
+      ```
+
+      ## 6. エラーハンドリングのテスト
+
+      ### 6.1 例外のテスト
+      ```ruby
+      describe '#risky_operation' do
+        context 'when something goes wrong' do
+          it 'raises an error' do
+            allow(DependentService).to receive(:call).and_raise(StandardError)
+            
+            expect {
+              subject.risky_operation
+            }.to raise_error(StandardError)
+          end
+        end
+      end
+      ```
+
+      ### 6.2 バリデーションエラーのテスト
+      ```ruby
+      describe 'validations' do
+        it 'is invalid without an email' do
+          user = build(:user, email: nil)
+          expect(user).not_to be_valid
+          expect(user.errors[:email]).to include("can't be blank")
+        end
+      end
+      ```
+
+      ## 7. パフォーマンステスト
+
+      ### 7.1 実行時間のテスト
+      ```ruby
+      describe '#expensive_operation' do
+        it 'completes within acceptable time' do
+          expect {
+            subject.expensive_operation
+          }.to perform_under(1.second)
+        end
+      end
+      ```
+
+      ### 7.2 メモリ使用量のテスト
+      ```ruby
+      describe '#memory_intensive_operation' do
+        it 'does not consume excessive memory' do
+          expect {
+            subject.memory_intensive_operation
+          }.not_to exceed_memory_limit(100.megabytes)
+        end
+      end
+      ```
+
+      ## 8. テストの整理とメンテナンス
+
+      ### 8.1 テストのグループ化
+      ```ruby
+      # 機能ごとのグループ化
+      RSpec.describe User do
+        describe 'authentication' do
+          # 認証関連のテスト
+        end
+        
+        describe 'profile management' do
+          # プロフィール関連のテスト
+        end
+        
+        describe 'permissions' do
+          # 権限関連のテスト
+        end
+      end
+      ```
+
+      ### 8.2 共通の設定
+      ```ruby
+      # spec/support/shared_examples.rb
+      RSpec.shared_examples 'an authenticatable resource' do
+        it 'requires authentication' do
+          expect(response).to have_http_status(:unauthorized)
+        end
+      end
+
+      # テストでの使用
+      RSpec.describe 'Protected Resource' do
+        include_examples 'an authenticatable resource'
+      end
+      ```
+
+      ## 9. カバレッジの監視
+
+      ### 9.1 SimpleCov 設定
+      ```ruby
+      # spec/rails_helper.rb
+      require 'simplecov'
+      SimpleCov.start 'rails' do
+        add_filter '/spec/'
+        add_filter '/config/'
+        add_filter '/vendor/'
+        
+        minimum_coverage 90
+      end
+      ```
+
+      ### 9.2 カバレッジレポートの確認
+      ```bash
+      # カバレッジレポートの生成
+      bundle exec rspec
+      open coverage/index.html
+      ```
+
+      ## 10. 継続的インテグレーション
+
+      ### 10.1 CI でのテスト実行
+      ```yaml
+      # .github/workflows/test.yml
+      name: Test
+      on: [push, pull_request]
+      jobs:
+        test:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v2
+            - name: Setup Ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                ruby-version: 3.2
+            - name: Run tests
+              run: bundle exec rspec
+      ```
+
+      ### 10.2 テスト結果の報告
+      ```bash
+      # 詳細なテスト結果の出力
+      bundle exec rspec --format documentation
+      ```
+
+      ## 11. TDD のベストプラクティス
+
+      ### 11.1 テストファースト
+      - 実装前に必ずテストを書く
+      - テストが失敗することを確認
+      - 最小限のコードで테스트を通す
+
+      ### 11.2 テストの品質
+      - 読みやすく理解しやすいテスト
+      - 1つのテストで1つの概念をテスト
+      - 適切な名前付け
+      - DRY 原則の適用
+
+      ### 11.3 リファクタリング
+      - テストが通った後にリファクタリング
+      - コードの重複を除去
+      - 可読性の向上
+      - パフォーマンスの最適化
+
+examples:
+  - input: |
+      "新しいユーザーモデルのメソッドを実装する"
+    output: |
+      ```ruby
+      # 1. まずテストを書く（レッド）
+      # spec/models/user_spec.rb
+      RSpec.describe User do
+        describe '#full_name' do
+          it 'returns the full name' do
+            user = User.new(first_name: 'John', last_name: 'Doe')
+            expect(user.full_name).to eq('John Doe')
+          end
+        end
+      end
+      
+      # 2. テストを実行（失敗することを確認）
+      # 3. 最小限のコードで実装（グリーン）
+      # app/models/user.rb
+      class User < ApplicationRecord
+        def full_name
+          "#{first_name} #{last_name}"
+        end
+      end
+      
+      # 4. テストが通ることを確認
+      # 5. 必要に応じてリファクタリング
+      ```
+
+metadata:
+  priority: critical
+  version: 1.0
+  dependencies:
+    - rspec-rails
+    - factory_bot_rails
+    - simplecov
+  tags:
+    - tdd
+    - testing
+    - rspec
+    - quality
+</rule>
+
+---

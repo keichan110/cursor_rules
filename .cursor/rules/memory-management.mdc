@@ -1,0 +1,142 @@
+---
+description: メモリ管理システムのルールと標準
+globs: ["**/docs/working-memory/**/*", "**/docs/templates/**/*", "**/docs/standards/**/*"]
+---
+# メモリ管理システム
+# ワーキングメモリ、プロジェクトメモリ、ドキュメントメモリを管理するための包括的なルール
+
+<rule>
+name: memory_management_system
+description: メモリ管理システムのルールと標準
+filters:
+  - type: file_extension
+    pattern: "\\.(md|mdc)$"
+  - type: directory
+    pattern: "(working-memory|templates|standards)"
+actions:
+  - type: suggest
+    message: |
+      メモリ管理システムのルール:
+
+      1. メモリタイプ:
+         a) ワーキングメモリ:
+            - 場所: /docs/working-memory/
+            - 目的: アクティブなコンテキストと進行中のタスク
+            - 更新: タスク実行中のリアルタイム
+            - 構造:
+              ```
+              /docs/working-memory/
+              ├── open/                 # アクティブなタスク
+              │   └── {task-id}/
+              │       ├── plan.md       # タスク計画
+              │       └── updates.md    # 進捗追跡
+              └── done/                 # 完了したタスク
+              ```
+
+         b) プロジェクトメモリ:
+            - 場所: /docs/
+            - 目的: 長期的なプロジェクト知識
+            - 更新: 重要な決定とマイルストーン
+            - 構成要素: アーキテクチャ、決定事項、標準
+
+         c) ドキュメントメモリ:
+            - 場所: /docs/templates/
+            - 目的: 標準とパターン
+            - レビュー: 月次テンプレート更新
+            - メンテナンス: 例を最新に保つ
+
+      2. タスクドキュメントファイル:
+         a) plan.md の要件:
+            - 問題分析
+            - ソリューション設計
+            - 実装ステップ
+            - 影響を受けるコンポーネント
+            - テスト計画
+            - ドキュメントへの影響
+            - 依存関係
+
+         b) updates.md の構造:
+            - 現在のステータス（上部、単一エントリ）
+            - 進捗履歴（時系列）
+            - 決定ログ
+            - 遭遇した問題
+            - 次のステップ
+
+      3. ステータス更新プロセス:
+         a) 現在のステータス:
+            - 単一のアクティブステータス
+            - `date "+%Y-%m-%d %H:%M:%S"` を使用
+            - 絵文字によるステータス表示
+            - 具体的な進捗詳細
+
+         b) 進捗履歴:
+            - 時系列順
+            - 完了した項目をマーク
+            - 重要な決定を記録
+            - 遭遇した問題を文書化
+
+      4. ファイル管理:
+         a) タスクの作成:
+            - 一意のタスク ID を生成
+            - 適切なディレクトリ構造を作成
+            - テンプレートから初期化
+            - メタデータを設定
+
+         b) タスクの完了:
+            - open/ から done/ に移動
+            - 最終レポートを追加
+            - 学習内容を記録
+            - 関連ファイルを更新
+
+      5. メンテナンス:
+         a) 日次:
+            - アクティブなタスクのステータス更新
+            - 進捗の記録
+            - 問題のエスカレーション
+            - 次の行動の計画
+
+         b) 週次:
+            - 完了したタスクのレビュー
+            - テンプレートの更新
+            - パターンの識別
+            - プロセスの改善
+
+      6. 統合:
+         a) Git 統合:
+            - コミット前にメモリを更新
+            - 変更をメモリに記録
+            - ブランチにタスク ID を含める
+            - プルリクエストでメモリを参照
+
+         b) 開発ワークフロー:
+            - 実装前に計画を作成
+            - 進捗を継続的に更新
+            - 決定を文書化
+            - 学習内容を記録
+
+examples:
+  - input: |
+      "新しいタスクを開始する"
+    output: |
+      ```bash
+      # タスク ID を生成
+      TASK_ID=$(date "+%Y%m%d_%H%M%S")_task_name
+      
+      # ディレクトリを作成
+      mkdir -p docs/working-memory/open/$TASK_ID
+      
+      # テンプレートからファイルを作成
+      cp docs/templates/plan.md docs/working-memory/open/$TASK_ID/
+      cp docs/templates/updates.md docs/working-memory/open/$TASK_ID/
+      ```
+
+  - input: |
+      "タスクを完了する"
+    output: |
+      ```bash
+      # タスクを完了フォルダに移動
+      mv docs/working-memory/open/$TASK_ID docs/working-memory/done/
+      
+      # 最終レポートを追加
+      echo "# 最終レポート" >> docs/working-memory/done/$TASK_ID/final-report.md
+      ```

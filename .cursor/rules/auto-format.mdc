@@ -1,0 +1,57 @@
+---
+description: RuboCop と ERB Lint を使用した Ruby、ERB、および関連ファイルの自動フォーマット
+globs: ["**/*.{rb,rake,jbuilder,erb}"]
+---
+# Rails プロジェクトの自動フォーマットルール
+# RuboCop と ERB Lint を使用した一貫性のあるコードフォーマットの適用
+
+<rule>
+name: auto_format_rails
+description: RuboCop と ERB Lint を使用した Ruby、ERB、および関連ファイルの自動フォーマット
+filters:
+  - type: file_extension
+    pattern: "\\.(rb|rake|jbuilder|erb)$"  # Rails 固有のファイル拡張子
+  - type: event
+    pattern: "file_save"  # ファイル保存時にトリガー
+actions:
+  - type: execute
+    conditions:
+      - pattern: "\\.rb$"
+        command: "bundle exec rubocop -a \"$FILE\""  # Ruby ファイルの自動修正
+      - pattern: "\\.erb$"
+        command: "bundle exec erblint --autocorrect \"$FILE\""  # ERB ファイルの自動修正
+  - type: suggest
+    message: |
+      コードフォーマットが自動的に適用されました:
+      - Ruby ファイル: RuboCop 自動修正
+      - ERB ファイル: ERB Lint 自動修正
+
+      フォーマットルールを設定するには:
+      - RuboCop: .rubocop.yml を編集
+      - ERB Lint: .erb-lint.yml を編集
+examples:
+  - input: |
+      # 悪い Ruby フォーマット
+      def bad_method(x,y)
+        x+y
+      end
+
+      # 良い Ruby フォーマット (RuboCop 適用後)
+      def bad_method(x, y)
+        x + y
+      end
+  - input: |
+      # 悪い ERB フォーマット
+      <%=@user.name%>
+
+      # 良い ERB フォーマット (ERB Lint 適用後)
+      <%= @user.name %>
+metadata:
+  priority: high
+  version: 1.0
+  dependencies:
+    - rubocop
+    - erb_lint
+</rule>
+
+---
